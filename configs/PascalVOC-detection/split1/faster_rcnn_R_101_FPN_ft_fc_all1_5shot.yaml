@@ -18,7 +18,7 @@ DATASETS:
   TRAIN: ('voc_2007_trainval_all1_5shot',)
   TEST: ('voc_2007_test_all1',)
 SOLVER:
-  IMS_PER_BATCH: 16
+  IMS_PER_BATCH: 6
   BASE_LR: 0.001
   STEPS: (17500,)
   MAX_ITER: 20000
