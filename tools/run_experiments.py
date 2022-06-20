@@ -2,7 +2,7 @@ import argparse
 import os
 from ast import literal_eval as make_tuple
 from subprocess import PIPE, STDOUT, Popen
-
+import sys
 import yaml
 
 
@@ -259,5 +259,6 @@ def main(args):
 
 
 if __name__ == "__main__":
+    sys.path.append("/home/cclab/바탕화면/ICTC_paper_jacky/few-shot-object-detection-master-relation_module/fsdet")
     args = parse_args()
     main(args)

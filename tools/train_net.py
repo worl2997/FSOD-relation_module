@@ -13,7 +13,7 @@ FsDet에서 표준 모델을 교육하기 위해 만들어진 entry point이다 
 """
 
 import os
-
+import sys
 import detectron2.utils.comm as comm
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import MetadataCatalog
@@ -105,6 +105,7 @@ def main(args):
 
 
 if __name__ == "__main__":
+    sys.path.append("/home/cclab/바탕화면/ICTC_paper_jacky/few-shot-object-detection-master-relation_module/fsdet")
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
     launch(
