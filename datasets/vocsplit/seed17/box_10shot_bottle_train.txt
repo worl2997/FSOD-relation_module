@@ -1,0 +1,9 @@
+datasets/VOC2012/JPEGImages/2008_000953.jpg
+datasets/VOC2012/JPEGImages/2010_004254.jpg
+datasets/VOC2012/JPEGImages/2009_004542.jpg
+datasets/VOC2007/JPEGImages/001537.jpg
+datasets/VOC2012/JPEGImages/2010_005825.jpg
+datasets/VOC2012/JPEGImages/2010_001680.jpg
+datasets/VOC2007/JPEGImages/004193.jpg
+datasets/VOC2012/JPEGImages/2010_000386.jpg
+datasets/VOC2007/JPEGImages/004152.jpg
