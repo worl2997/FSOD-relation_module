@@ -47,6 +47,9 @@ def parse_args():
         default="model_reset",
         help="Name of the new ckpt",
     )
+    parser.add_argument(
+        "--rel_voc", action="store_true", help="surgery for VOC relation-FSOD model"
+    )
     # Dataset
     parser.add_argument("--coco", action="store_true", help="For COCO models")
     parser.add_argument("--lvis", action="store_true", help="For LVIS models")
@@ -73,6 +76,7 @@ def ckpt_surgery(args):
     """
 
     def surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
+
         weight_name = param_name + (".weight" if is_weight else ".bias")
         pretrained_weight = ckpt["model"][weight_name]
         prev_cls = pretrained_weight.size(0) # 기존의 class 수
@@ -107,15 +111,15 @@ def ckpt_surgery(args):
 
 
 def combine_ckpts(args):
-
     """
     Combine base detector with novel detector. Feature extractor weights are
     from the base detector. Only the final layer weights are combined.
     """
-
     def surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
         if not is_weight and param_name + ".bias" not in ckpt["model"]:
             return
+
+        # fix for relation_module
         weight_name = param_name + (".weight" if is_weight else ".bias")
         pretrained_weight = ckpt["model"][weight_name]
         prev_cls = pretrained_weight.size(0)
@@ -195,8 +199,13 @@ def surgery_loop(args, surgery):
         return
 
     # Surgery -> novel 클래스에 대한 가중치 추가
-    tar_sizes = [TAR_SIZE + 1, TAR_SIZE * 4] # 21 x 80
+
+    tar_sizes = [TAR_SIZE + 1, TAR_SIZE * 4] # [21, 20 *4]
     for idx, (param_name, tar_size) in enumerate(zip(args.param_name, tar_sizes)):
+        if args.rel_voc:
+            if "cls_score" in param_name:
+                continue
+
         surgery(param_name, True, tar_size, ckpt, ckpt2)
         surgery(param_name, False, tar_size, ckpt, ckpt2)
 
