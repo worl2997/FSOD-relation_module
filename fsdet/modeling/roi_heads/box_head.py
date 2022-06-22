@@ -83,14 +83,6 @@ class FastRCNNConvFCHead(nn.Module):
         for layer in self.fcs:
             weight_init.c2_xavier_fill(layer) # xavier_fill
 
-        ''' 수정된 부분 '''
-        # box regresiion을 위한 fc layer
-        self.fc_box= nn.Linear(np.prod(self._output_size), fc_dim)
-        self.add_module("fc_box", self.fc_box)
-
-        # for class (projection 함수)
-        self.fc_cls = nn.Linear(np.prod(self._output_size), word_dim) # 300차원으로 변환
-        self.add_module('fc_cls', self.fc_cls)
 
         # cls를 위한 projection layer
 
@@ -107,15 +99,7 @@ class FastRCNNConvFCHead(nn.Module):
             for layer in self.fcs:
                 x = F.relu(layer(x))
 
-
-        #x  shape -> 1024 x 1024
-        '''
-        각각 분기를 나눔 (decouple)
-        2 개의 feature 를 넘겨주어야함 
-        box prediction feature 
-        relation based cls feature 
-        '''
-        return x 
+        return x
 
     @property
     def output_size(self):

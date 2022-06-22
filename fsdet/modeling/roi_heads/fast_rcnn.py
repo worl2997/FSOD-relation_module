@@ -10,6 +10,7 @@ from detectron2.utils.registry import Registry
 from fvcore.nn import smooth_l1_loss
 from torch import nn
 import torch.nn.functional as F
+import math
 
 ROI_HEADS_OUTPUT_REGISTRY = Registry("ROI_HEADS_OUTPUT")
 ROI_HEADS_OUTPUT_REGISTRY.__doc__ = """
@@ -361,36 +362,6 @@ class FastRCNNOutputs(object):
 #
 #
 
-class SDAttention(nn.Module):
-    def __init__(self, vec_dim=300, ll_dim=32):
-        super(SDAttention, self).__init__()
-
-        # scale 함수 여부는 나중에 생각하기
-        self.scale = 1.0 / np.sqrt(ll_dim)
-
-        # self.add_module 여부 생각하기
-        self.linear_f = nn.Linear(vec_dim, ll_dim)
-        self.linear_g = nn.Linear(vec_dim, ll_dim)
-        self.linear_h = nn.Linear(vec_dim, ll_dim)
-        self.linear_l = nn.Linear(ll_dim, vec_dim)  # 다시 원래차원으로 확장
-
-    def forward(self, wordvec):
-        # x = x.to(torch.cuda.current_device())
-        wordvec = torch.tensor(wordvec, dtype=torch.float32, device=torch.cuda.current_device())
-        x = wordvec.detach()
-        f = self.linear_f(x)
-        g = self.linear_g(x)
-        h = self.linear_h(x)
-
-        att_qk = torch.mm(f, g.T)
-        att_score = F.softmax(att_qk.mul_(self.scale), dim=1)  # NxN
-
-        out_1 = torch.mm(att_score, h) # N x 32 차원
-        out = self.linear_l(out_1)  # N x vec_dim size
-
-        aug_feat = out + x
-
-        return aug_feat
 
 
 @ROI_HEADS_OUTPUT_REGISTRY.register()
@@ -416,47 +387,79 @@ class FastRCNNOutputLayers(nn.Module):
         if not isinstance(input_size, int):
             input_size = np.prod(input_size)
 
-
-        self.relation_module = SDAttention() # relation reasoning
+        fc_dim     = cfg.MODEL.ROI_BOX_HEAD.FC_DIM
+        word_dim = 300
 
         num_bbox_reg_classes = 1 if cls_agnostic_bbox_reg else num_classes
+
         self.bbox_pred = nn.Linear(input_size, num_bbox_reg_classes * box_dim)
 
         nn.init.normal_(self.bbox_pred.weight, std=0.001)
         nn.init.constant_(self.bbox_pred.bias, 0)
 
-        # 이 부분을 추후에 surgery 수행함
-        # self.cls_score = nn.Linear(input_size, num_classes + 1) # 배경 클래스까지 추가 (surgery할 부분)
-        #nn.init.normal_(self.cls_score.weight, std=0.01)
 
-        # for l in [self.cls_score, self.bbox_pred]:
-        #     nn.init.constant_(l.bias, 0)
+        self.proj_weight = nn.Parameter(num_bbox_reg_classes, word_dim)
+        self.proj_bias = nn.Parameter(torch.empty(num_bbox_reg_classes+1))
+        self.reset_parameters()
 
+
+        self.relation_module = SDAttention() # relation reasoning
+
+
+    def reset_parameters(self) -> None:
+        # Setting a=sqrt(5) in kaiming_uniform is the same as initializing with
+        # uniform(-1/sqrt(in_features), 1/sqrt(in_features)). For details, see
+        # https://github.com/pytorch/pytorch/issues/57109
+        nn.init.kaiming_uniform_(self.proj_weight, a=math.sqrt(5))
+        if self.proj_bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.proj_weight)
+            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+            nn.init.uniform_(self.proj_bias, -bound, bound)
 
 
     def forward(self, x, semantic_feat):
         # x -> 2개의 feature가 포함된 리스트 [box_feat, cls_feat]
         # x의 shape -> [1024, 1024], [1024,300]
         # semantic_feat : word vector
-        box_feat = x[0]
-        cls_feat = x[1] # [1024, 300]
-        if box_feat.dim() > 2:
-            box_feat = torch.flatten(box_feat, start_dim=1)
-        proposal_deltas = self.bbox_pred(box_feat)
+        if x.dim() > 2:
+            x = torch.flatten(x, start_dim=1)
+
+        cls_feat = torch.mm(x,self.proj_weigh.t()) # projection
         aug_feat = self.relation_module(semantic_feat) # nx300
-        cls_output = torch.mm(cls_feat, aug_feat.T) # [1024,300] x [300, N]
+        cls_output = torch.mm(cls_feat, aug_feat.t()) # [1024,300] x [300, N] -> [1024,N]
+        proposal_deltas = self.bbox_pred(x)
+        # 1024 x 21 -> input of cross entropy loss
 
-        # 1024 x 21 -> 바로 cross entropy loss로 넣음
-        # 이경우 굳이 classfication weight에 추가적인 novel weight를 추가할 필요가 없음
-
-        # previous code
-        # if x.dim() > 2:
-        #     x = torch.flatten(x, start_dim=1) # visual feature
-        # scores = self.cls_score(x) # 원래는 이부분을 surgery
-        # proposal_deltas = self.bbox_pred(x)
-        # print(cls_output)
         return cls_output, proposal_deltas
 
+class SDAttention(nn.Module):
+    def __init__(self, vec_dim=300, ll_dim=32):
+        super(SDAttention, self).__init__()
+
+        # scale 함수 여부는 나중에 생각하기
+        self.scale = 1.0 / np.sqrt(ll_dim)
+        self.dropout = nn.Dropout(0.1)
+        # self.add_module 여부 생각하기
+        self.linear_f = nn.Linear(vec_dim, ll_dim, bias=False)
+        self.linear_g = nn.Linear(vec_dim, ll_dim, bias=False)
+        self.linear_h = nn.Linear(vec_dim, ll_dim, bias=False)
+        self.linear_l = nn.Linear(ll_dim, vec_dim, bias= False)  # 32 -> 300
+
+    def forward(self, wordvec):
+
+        wordvec = torch.tensor(wordvec, dtype=torch.float32, device=torch.cuda.current_device())
+        f = self.linear_f(wordvec)
+        g = self.linear_g(wordvec)
+        h = self.linear_h(wordvec) # N x 32
+
+        att_qk = torch.mm(f, g.t())
+        att_score = self.dropout(F.softmax(att_qk.mul_(self.scale), dim=-1))  # NxN
+        out = torch.mm(att_score, h) # N x 32 차원
+        out = self.linear_l(out)  # N x vec_dim size
+
+        aug_feat = out + wordvec
+
+        return aug_feat
 
 
 # Head output 2
