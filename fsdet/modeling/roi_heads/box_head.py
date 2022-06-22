@@ -107,16 +107,15 @@ class FastRCNNConvFCHead(nn.Module):
             for layer in self.fcs:
                 x = F.relu(layer(x))
 
-        box_feat = self.fc_box(x)
-        cls_feat = self.fc_cls(x)
-        # x  shape -> 1024 x 1024
+
+        #x  shape -> 1024 x 1024
         '''
         각각 분기를 나눔 (decouple)
         2 개의 feature 를 넘겨주어야함 
         box prediction feature 
         relation based cls feature 
         '''
-        return [box_feat, cls_feat]
+        return x 
 
     @property
     def output_size(self):
