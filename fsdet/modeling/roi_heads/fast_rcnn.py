@@ -397,9 +397,9 @@ class FastRCNNOutputLayers(nn.Module):
         nn.init.constant_(self.bbox_pred.bias, 0)
 
 
-        self.proj_weight = nn.Parameter(torch.randn(word_dim, fc_dim))
+        self.proj_weight = nn.Parameter(torch.randn(word_dim, fc_dim)) # 300, 1024 ?
         self.proj_bias = nn.Parameter(torch.empty(num_bbox_reg_classes+1))
-        nn.init.normal_(self.proj_weight, std=0.01)
+        nn.init.normal_(self.proj_weight, std=0.01) # implement error ..
         nn.init.constant_(self.proj_bias, 0)
 
         self.relation_module = SDAttention() # relation reasoning

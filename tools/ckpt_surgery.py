@@ -30,13 +30,12 @@ def parse_args():
         "base detector. randinit = randomly initialize "
         "novel weights.",
     )
-    # Targets
+    # Targets'roi_heads.box_predictor.bbox_pred.weight', 'roi_heads.box_predictor.bbox_pred.bias
     parser.add_argument(
         "--param-name",
         type=str,
         nargs="+",
         default=[
-            "roi_heads.box_predictor.cls_score",
             "roi_heads.box_predictor.bbox_pred",
         ],
         help="Target parameter names",
@@ -76,9 +75,14 @@ def ckpt_surgery(args):
     """
 
     def surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
+        a = ckpt["model"].keys()
+        print(a)
 
         weight_name = param_name + (".weight" if is_weight else ".bias")
         pretrained_weight = ckpt["model"][weight_name]
+        
+
+
         prev_cls = pretrained_weight.size(0) # 기존의 class 수
         if "cls_score" in param_name:  # class이름이 cls_score 인것을 기반으로 parameter surgery
             prev_cls -= 1
@@ -200,12 +204,10 @@ def surgery_loop(args, surgery):
 
     # Surgery -> novel 클래스에 대한 가중치 추가
 
-    tar_sizes = [TAR_SIZE + 1, TAR_SIZE * 4] # [21, 20 *4]
+    tar_sizes = [TAR_SIZE * 4] # [21, 20 *4]
     for idx, (param_name, tar_size) in enumerate(zip(args.param_name, tar_sizes)):
-        if args.rel_voc:
-            if "cls_score" in param_name:
-                continue
-
+        print(param_name)
+        print(tar_size)
         surgery(param_name, True, tar_size, ckpt, ckpt2)
         surgery(param_name, False, tar_size, ckpt, ckpt2)
 
