@@ -64,7 +64,9 @@ class StandardRPNHead(nn.Module):
         self.objectness_logits = nn.Conv2d(in_channels, num_cell_anchors, kernel_size=1, stride=1)
 
         # Todo objectness score
-
+        self.finetuned_objectness_logits = nn.Conv2d(
+            in_channels, num_cell_anchors, kernel_size=1, stride=1
+        )
         # 1x1 conv for predicting box2box transform deltas
         self.anchor_deltas = nn.Conv2d(
             in_channels, num_cell_anchors * box_dim, kernel_size=1, stride=1
@@ -83,7 +85,9 @@ class StandardRPNHead(nn.Module):
         pred_anchor_deltas = []
         for x in features:
             t = F.relu(self.conv(x))
-            pred_objectness_logits.append(self.objectness_logits(t))
+            '''추가된 로직, fine-tuning 시에만 학습하'''
+            logit_map = torch.max(self.objectness_logits(t), self.finetuned_objectness_logits(t))
+            pred_objectness_logits.append(logit_map)
             pred_anchor_deltas.append(self.anchor_deltas(t))
         return pred_objectness_logits, pred_anchor_deltas
 
