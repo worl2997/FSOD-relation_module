@@ -53,9 +53,6 @@ class GeneralizedRCNN(nn.Module):
             print("froze backbone parameters")
 
         if cfg.MODEL.PROPOSAL_GENERATOR.FREEZE:
-
-
-            print(self.proposal_generator)
             for idx, p in enumerate(self.proposal_generator.parameters()):
                 # index 로 접근해서 pretrained 할 가중치는 스킵
                 p.requires_grad = False

@@ -42,7 +42,7 @@ class StandardRPNHead(nn.Module):
 
     def __init__(self, cfg, input_shape: List[ShapeSpec]):
         super().__init__()
-
+        print('custom standard rpn load')
         # Standard RPN is shared across levels:
         in_channels = [s.channels for s in input_shape]
         assert len(set(in_channels)) == 1, "Each level must have the same channel!"
@@ -63,10 +63,10 @@ class StandardRPNHead(nn.Module):
         # 1x1 conv for predicting objectness logits
         self.objectness_logits = nn.Conv2d(in_channels, num_cell_anchors, kernel_size=1, stride=1)
 
-        # Todo objectness score
-        self.finetuned_objectness_logits = nn.Conv2d(
-            in_channels, num_cell_anchors, kernel_size=1, stride=1
-        )
+        # # Todo objectness score
+        # self.finetuned_objectness_logits = nn.Conv2d(
+        #     in_channels, num_cell_anchors, kernel_size=1, stride=1
+        # )
         # 1x1 conv for predicting box2box transform deltas
         self.anchor_deltas = nn.Conv2d(
             in_channels, num_cell_anchors * box_dim, kernel_size=1, stride=1
@@ -88,7 +88,8 @@ class StandardRPNHead(nn.Module):
         for x in features:
             t = F.relu(self.conv(x))
             '''추가된 로직, fine-tuning 시에만 학습하'''
-            logit_map = torch.max(self.objectness_logits(t), self.finetuned_objectness_logits(t))
+            #logit_map = torch.max(self.objectness_logits(t), self.finetuned_objectness_logits(t))
+            logit_map = self.objectness_logits(t)
             pred_objectness_logits.append(logit_map)
             pred_anchor_deltas.append(self.anchor_deltas(t))
         return pred_objectness_logits, pred_anchor_deltas
@@ -128,6 +129,7 @@ class RPN(nn.Module):
             cfg, [input_shape[f] for f in self.in_features]
         )
         self.box2box_transform = Box2BoxTransform(weights=cfg.MODEL.RPN.BBOX_REG_WEIGHTS)
+
         self.anchor_matcher = Matcher(
             cfg.MODEL.RPN.IOU_THRESHOLDS, cfg.MODEL.RPN.IOU_LABELS, allow_low_quality_matches=True
         )
