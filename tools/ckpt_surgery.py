@@ -25,18 +25,17 @@ def parse_args():
         choices=["combine", "remove", "randinit"],
         required=True,
         help="Surgery method. combine = "
-        "combine checkpoints. remove = for fine-tuning on "
-        "novel dataset, remove the final layer of the "
-        "base detector. randinit = randomly initialize "
-        "novel weights.",
+             "combine checkpoints. remove = for fine-tuning on "
+             "novel dataset, remove the final layer of the "
+             "base detector. randinit = randomly initialize "
+             "novel weights.",
     )
-    # Targets
+    # Targets'roi_heads.box_predictor.bbox_pred.weight', 'roi_heads.box_predictor.bbox_pred.bias
     parser.add_argument(
         "--param-name",
         type=str,
         nargs="+",
         default=[
-            "roi_heads.box_predictor.cls_score",
             "roi_heads.box_predictor.bbox_pred",
         ],
         help="Target parameter names",
@@ -46,6 +45,9 @@ def parse_args():
         type=str,
         default="model_reset",
         help="Name of the new ckpt",
+    )
+    parser.add_argument(
+        "--rel_voc", action="store_true", help="surgery for VOC relation-FSOD model"
     )
     # Dataset
     parser.add_argument("--coco", action="store_true", help="For COCO models")
@@ -73,15 +75,19 @@ def ckpt_surgery(args):
     """
 
     def surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
+        a = ckpt["model"].keys()
+        print(a)
+
         weight_name = param_name + (".weight" if is_weight else ".bias")
         pretrained_weight = ckpt["model"][weight_name]
-        prev_cls = pretrained_weight.size(0) # 기존의 class 수
+
+        prev_cls = pretrained_weight.size(0)  # 기존의 class 수
         if "cls_score" in param_name:  # class이름이 cls_score 인것을 기반으로 parameter surgery
             prev_cls -= 1
         if is_weight:
-            feat_size = pretrained_weight.size(1) # weigh size 체크
-            new_weight = torch.rand((tar_size, feat_size)) # tar_size, feat_size
-            torch.nn.init.normal_(new_weight, 0, 0.01) # normalization ?
+            feat_size = pretrained_weight.size(1)  # weigh size 체크
+            new_weight = torch.rand((tar_size, feat_size))  # tar_size, feat_size
+            torch.nn.init.normal_(new_weight, 0, 0.01)  # normalization ?
         else:
             new_weight = torch.zeros(tar_size)
             # weight가 아니라면 (bias등)_0으로 초기화
@@ -93,8 +99,8 @@ def ckpt_surgery(args):
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
                 else:
                     new_weight[
-                        IDMAP[c] * 4 : (IDMAP[c] + 1) * 4
-                    ] = pretrained_weight[idx * 4 : (idx + 1) * 4]
+                    IDMAP[c] * 4: (IDMAP[c] + 1) * 4
+                    ] = pretrained_weight[idx * 4: (idx + 1) * 4]
         else:
             # Pascal voc 데이터의 경우
             # novel class에 대한 weight를 rand하게 초기화
@@ -107,7 +113,6 @@ def ckpt_surgery(args):
 
 
 def combine_ckpts(args):
-
     """
     Combine base detector with novel detector. Feature extractor weights are
     from the base detector. Only the final layer weights are combined.
@@ -116,6 +121,8 @@ def combine_ckpts(args):
     def surgery(param_name, is_weight, tar_size, ckpt, ckpt2=None):
         if not is_weight and param_name + ".bias" not in ckpt["model"]:
             return
+
+        # fix for relation_module
         weight_name = param_name + (".weight" if is_weight else ".bias")
         pretrained_weight = ckpt["model"][weight_name]
         prev_cls = pretrained_weight.size(0)
@@ -133,8 +140,8 @@ def combine_ckpts(args):
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
                 else:
                     new_weight[
-                        IDMAP[c] * 4 : (IDMAP[c] + 1) * 4
-                    ] = pretrained_weight[idx * 4 : (idx + 1) * 4]
+                    IDMAP[c] * 4: (IDMAP[c] + 1) * 4
+                    ] = pretrained_weight[idx * 4: (idx + 1) * 4]
         else:
             new_weight[:prev_cls] = pretrained_weight[:prev_cls]
 
@@ -145,8 +152,8 @@ def combine_ckpts(args):
                     new_weight[IDMAP[c]] = ckpt2_weight[i]
                 else:
                     new_weight[
-                        IDMAP[c] * 4 : (IDMAP[c] + 1) * 4
-                    ] = ckpt2_weight[i * 4 : (i + 1) * 4]
+                    IDMAP[c] * 4: (IDMAP[c] + 1) * 4
+                    ] = ckpt2_weight[i * 4: (i + 1) * 4]
             if "cls_score" in param_name:
                 new_weight[-1] = pretrained_weight[-1]
         else:
@@ -171,10 +178,10 @@ def surgery_loop(args, surgery):
 
         ckpt2 = None
         save_name = (
-            args.tar_name
-            + "_"
-            + ("remove" if args.method == "remove" else "surgery")
-            + ".pth"
+                args.tar_name
+                + "_"
+                + ("remove" if args.method == "remove" else "surgery")
+                + ".pth"
         )
     if args.save_dir == "":
         # By default, save to directory of src1
@@ -195,8 +202,11 @@ def surgery_loop(args, surgery):
         return
 
     # Surgery -> novel 클래스에 대한 가중치 추가
-    tar_sizes = [TAR_SIZE + 1, TAR_SIZE * 4] # 21 x 80
+
+    tar_sizes = [TAR_SIZE * 4]  # [21, 20 *4]
     for idx, (param_name, tar_size) in enumerate(zip(args.param_name, tar_sizes)):
+        print(param_name)
+        print(tar_size)
         surgery(param_name, True, tar_size, ckpt, ckpt2)
         surgery(param_name, False, tar_size, ckpt, ckpt2)
 
@@ -287,7 +297,7 @@ if __name__ == "__main__":
         TAR_SIZE = 1230
     else:
         # VOC
-        TAR_SIZE = 20 # target size
+        TAR_SIZE = 20  # target size
 
     if args.method == "combine":
         combine_ckpts(args)
