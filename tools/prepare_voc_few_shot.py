@@ -32,7 +32,7 @@ def generate_seeds(args):
         data.extend(fileids)
     for fileid in data:
         year = "2012" if "_" in fileid else "2007"
-        dirname = os.path.join("datasets", "VOC{}".format(year))
+        dirname = os.path.join("../datasets", "VOC{}".format(year))
         anno_file = os.path.join(dirname, "Annotations", fileid + ".xml")
         tree = ET.parse(anno_file)
         clses = []
