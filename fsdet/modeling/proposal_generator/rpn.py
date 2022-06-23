@@ -10,7 +10,7 @@ from detectron2.utils.registry import Registry
 from detectron2.modeling import build_anchor_generator
 from detectron2.modeling.box_regression import Box2BoxTransform
 from detectron2.modeling.matcher import Matcher
-from .build import PROPOSAL_GENERATOR_REGISTRY
+from .build_proposal_generator import PROPOSAL_GENERATOR_REGISTRY
 from .rpn_outputs import RPNOutputs, find_top_rpn_proposals
 
 RPN_HEAD_REGISTRY = Registry("RPN_HEAD")
@@ -76,11 +76,13 @@ class StandardRPNHead(nn.Module):
             nn.init.normal_(l.weight, std=0.01)
             nn.init.constant_(l.bias, 0)
 
+
     def forward(self, features):
         """
         Args:
             features (list[Tensor]): list of feature maps
         """
+
         pred_objectness_logits = []
         pred_anchor_deltas = []
         for x in features:

@@ -2,7 +2,8 @@ import logging
 import torch
 from detectron2.modeling.backbone import build_backbone
 from detectron2.modeling.postprocessing import detector_postprocess
-from detectron2.modeling.proposal_generator import build_proposal_generator
+#from modeling.proposal_generator import build_proposal_generator
+from fsdet.modeling.proposal_generator import build_proposal_generator
 from detectron2.structures import ImageList
 from detectron2.utils.logger import log_first_n
 from torch import nn
@@ -52,9 +53,17 @@ class GeneralizedRCNN(nn.Module):
             print("froze backbone parameters")
 
         if cfg.MODEL.PROPOSAL_GENERATOR.FREEZE:
-            for p in self.proposal_generator.parameters():
+
+
+            print(self.proposal_generator)
+            for idx, p in enumerate(self.proposal_generator.parameters()):
+                # index 로 접근해서 pretrained 할 가중치는 스킵
                 p.requires_grad = False
-            print("froze proposal generator parameters")
+
+            # print("froze proposal generator parameters")
+            # self.proposal_generator.rpn_head.finetuned_objectness_logits.children().parameters().requires_grad = True
+            # print(self.proposal_generator.rpn_head.finetuned_objectness_logits)
+            # print("unfroze finetuned_objectness_logits parameters")
 
         if cfg.MODEL.ROI_HEADS.FREEZE_FEAT:
             for p in self.roi_heads.box_head.parameters():

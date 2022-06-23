@@ -13,7 +13,9 @@ import torch.nn.functional as F
 import math
 
 ROI_HEADS_OUTPUT_REGISTRY = Registry("ROI_HEADS_OUTPUT")
+
 ROI_HEADS_OUTPUT_REGISTRY.__doc__ = """
+
 Registry for the output layers in ROI heads in a generalized R-CNN model."""
 
 logger = logging.getLogger(__name__)

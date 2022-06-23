@@ -7,7 +7,7 @@ The registered object will be called with `obj(cfg, input_shape)`.
 The call should return a `nn.Module` object.
 """
 
-from . import rpn, rrpn  # noqa F401 isort:skip
+from . import rpn  # noqa F401 isort:skip
 
 
 def build_proposal_generator(cfg, input_shape):

@@ -11,7 +11,7 @@ from detectron2.structures import Boxes, Instances, pairwise_iou
 from detectron2.utils.events import get_event_storage
 from detectron2.utils.memory import retry_if_cuda_oom
 
-from ..sampling import subsample_labels
+from detectron2.modeling.sampling import subsample_labels
 
 logger = logging.getLogger(__name__)
 
