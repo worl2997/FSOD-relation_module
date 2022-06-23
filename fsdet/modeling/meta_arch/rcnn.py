@@ -2,7 +2,7 @@ import logging
 import torch
 from detectron2.modeling.backbone import build_backbone
 from detectron2.modeling.postprocessing import detector_postprocess
-from detectron2.modeling.proposal_generator import build_proposal_generator
+from fsdet.modeling.proposal_generator import build_proposal_generator
 from detectron2.structures import ImageList
 from detectron2.utils.logger import log_first_n
 from torch import nn
@@ -114,6 +114,7 @@ class GeneralizedRCNN(nn.Module):
 
         features = self.backbone(images.tensor)
 
+        # proposal generator 호출
         if self.proposal_generator:
             proposals, proposal_losses = self.proposal_generator(
                 images, features, gt_instances
