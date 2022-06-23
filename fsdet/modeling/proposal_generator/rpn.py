@@ -92,7 +92,8 @@ class StandardRPNHead(nn.Module):
         # 3x3 conv for the hidden representation
         self.conv = nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1)
         # 1x1 conv for predicting objectness logits
-        self.objectness_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1)
+        self.objectness_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1, bias=True)
+        self.finetuned_objectness_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1, bias=True)
         # 1x1 conv for predicting box2box transform deltas
         self.anchor_deltas = nn.Conv2d(in_channels, num_anchors * box_dim, kernel_size=1, stride=1)
 
@@ -135,6 +136,8 @@ class StandardRPNHead(nn.Module):
         for x in features:
             t = F.relu(self.conv(x))
             pred_objectness_logits.append(self.objectness_logits(t))
+            # logit_map = torch.max(self.objectness_logits(t), self.finetuned_objectness_logits(t))
+            # pred_anchor_deltas.append(logit_map)
             pred_anchor_deltas.append(self.anchor_deltas(t))
         return pred_objectness_logits, pred_anchor_deltas
 

@@ -86,7 +86,7 @@ def run_exp(cfg, configs):
     model_path = os.path.join(args.root, output_dir, "model_final.pth")
     if not os.path.exists(model_path):
         train_cmd = (
-            "python tools/train_net.py --dist-url auto --num-gpus {} "
+            "python -m tools.train_net --dist-url auto --num-gpus {} "
             "--config-file {} --resume".format(args.num_gpus, cfg)
         )
         run_cmd(train_cmd)
@@ -97,7 +97,7 @@ def run_exp(cfg, configs):
     )
     if not os.path.exists(res_path):
         test_cmd = (
-            "python tools/test_net.py --dist-url auto --num-gpus {} "
+            "python -m tools.test_net --dist-url auto --num-gpus {} "
             "--config-file {} --resume --eval-only".format(args.num_gpus, cfg)
         )
         run_cmd(test_cmd)

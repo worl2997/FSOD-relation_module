@@ -58,7 +58,7 @@ def load_filtered_voc_instances(name: str, dirname: str, split: str, classnames:
     dicts = []
 
     # 새로 추가한 glove data
-    glove_path = "/home/jacky/바탕화면/FSOD-relation_module/datasets/word2vec_base_split1.pkl"
+    glove_path = "/home/jacky/바탕화면/FSOD-relation_module/datasets/word2vec_all_split1.pkl"
     with open(glove_path, 'rb') as f:
         voc_glove = pickle.load(f)
         f.close()
