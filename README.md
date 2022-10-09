@@ -1,4 +1,5 @@
-# Repository for Relation netwowrk for FSOD (based on Two-staget fine-tuning method, Detectron2)
+# Repository for Relation netwowrk for FSOD, for ICTC paper 
+(based on Two-staget fine-tuning method, Detectron2)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/ucbdrive/few-shot-object-detection.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ucbdrive/few-shot-object-detection/context:python)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
